@@ -1,0 +1,224 @@
+set mem 300m
+
+use AEJApp-20090168_data.dta
+
+log using AEJApp-20090168_results.log
+
+gen formalsal_06 = dformal_06*salary_06
+gen informalsal_06 = (1-dformal_06)*salary_06
+
+global vvarlb "dwomen age_lb dmarried_lb educ_lb empl_04 pempl_04 salary_04 profit_04 dformal_04 contract_04 tenure_04 days_04  hours_04 " 
+global vvarseg "age_s dmarried_s educ_s empl_06 pempl_06 salary_06  profit_06  dformal_06 contract_06 tenure_06 days_06 hours_06 formalsal_06 informalsal_06" 
+global vvarlb0 "dwomen age_lb dmarried_lb educ_lb empl_04 pempl_04 salary_04 profit_04 dformal_04 contract_04 days_04 hours_04" 
+global vvarsegp "empl_06 pempl_06 dformal_06 contract_06"
+
+egen coursefixe=group(city codigo_ecap codigo_curs)
+
+drop if coursefixe==.
+
+save AEJApp-20090168_data.dta, replace
+
+
+*******************Attrition Analysis **********************************************
+
+count if dwomen==1
+count if dwomen==1 & dcontinue==1
+count if dwomen==1 & dcontinue==0
+count if dwomen==1 & dcontinue==0 & select==1
+count if dwomen==1 & dcontinue==0 & select==0
+bys dcontinue: sum select if dwomen==1 
+
+count if dwomen==0
+count if dwomen==0 & dcontinue==1
+count if dwomen==0 & dcontinue==0
+count if dwomen==0 & dcontinue==0 & select==1
+count if dwomen==0 & dcontinue==0 & select==0
+bys dcontinue: sum select if dwomen==0
+
+
+sum $vvarlb if dwomen==1
+sum $vvarlb if dwomen==0
+sum $vvarlb if dwomen==1 & dcontinue==1
+sum $vvarlb if dwomen==0 & dcontinue==1
+
+sum $vvarlb if dwomen==1 & dcontinue==0
+sum $vvarlb if dwomen==0 & dcontinue==0
+
+
+sum $vvarseg if dwomen==1 & select == 0
+sum $vvarseg if dwomen==0 & select == 0
+
+
+areg dcontinue select if dwomen==1, abs(coursefixe)
+areg dcontinue select if dwomen==0, abs(coursefixe)
+
+areg dcontinue select $vvarlb0 if dwomen==1, abs(coursefixe)
+areg dcontinue select $vvarlb0 if dwomen==0, abs(coursefixe)
+
+
+***************** Descriptive Statistics *******************************************
+
+foreach y of global vvarlb {
+summarize `y'  if dwomen==1 & dcontinue==1
+summarize `y' if dwomen==0 & dcontinue==1
+}
+
+foreach y of global vvarseg {
+summarize `y'  if dwomen==1 & dcontinue==1
+summarize `y' if dwomen==0 & dcontinue==1
+}
+
+
+***************** Baseline Descriptions *******************************************
+
+areg select $vvarlb0 if dwomen==1 & dcontinue==1, abs(coursefixe)
+areg select $vvarlb0 if dwomen==0 & dcontinue==1, abs(coursefixe)
+
+foreach y of global vvarlb {
+areg `y' select  if dwomen==1 & dcontinue==1, abs(coursefixe)
+areg `y' select  if dwomen==0 & dcontinue==1, abs(coursefixe)
+}
+
+
+******************************* Outcomes ************************************************
+
+foreach y of global vvarseg {
+areg `y' select  if dwomen==1 & dcontinue==1, abs(coursefixe)
+areg `y' select  if dwomen==0 & dcontinue==1, abs(coursefixe)
+}
+
+
+***************************** Controling for Initial Imbalances ***********************
+
+foreach y of global vvarseg {
+areg `y' select educ_lb tenure_04 if dwomen==1 & dcontinue==1, abs(coursefixe)
+areg `y' select educ_lb tenure_04  if dwomen==0 & dcontinue==1, abs(coursefixe)
+}
+
+
+***************************** Controling for Many Initial Variables ***********************
+
+foreach y of global vvarseg {
+areg `y' select $vvarlb0 if dwomen==1 & dcontinue==1, abs(coursefixe)
+areg `y' select $vvarlb0 if dwomen==0 & dcontinue==1, abs(coursefixe)
+}
+
+
+*************** Discrete Variables Fixed Effect Logit (few controls) and Computing Marginal Effects *****************
+
+foreach y of global vvarsegp {
+clogit `y' select educ_lb tenure_04 if dwomen==1 & dcontinue==1, group(coursefixe)
+egen P1f`y' = mean(`y') if select==1 & dwomen==1 & dcontinue==1, by(coursefixe)
+gen PS1f`y' = P1f`y'*exp(-_b[select])*_se[select]
+replace P1f`y'=P1f`y'*(1-exp(-_b[select]))
+egen P0f`y' = mean(`y') if select==0 & dwomen==1 & dcontinue==1, by(coursefixe)
+*gen Margf`y' = P1f`y'*(1-P0f`y')
+
+clogit `y' select educ_lb tenure_04 if dwomen==0 & dcontinue==1,group(coursefixe)
+egen P1m`y' = mean(`y') if select==1 & dwomen==0 & dcontinue==1, by(coursefixe)
+gen PS1m`y' = P1m`y'*exp(-_b[select])*_se[select]
+replace P1m`y'=P1m`y'*(1-exp(-_b[select]))
+egen P0m`y' = mean(`y') if select==0 & dwomen==0 & dcontinue==1, by(coursefixe)
+*
+
+}
+
+
+************** Discrete Variables Fixed Effect Logit (many controls) and Computing Marginal Effects *****************
+
+foreach y of global vvarsegp {
+clogit `y' select $vvarlb0 if dwomen==1 & dcontinue==1, group(coursefixe)
+egen Pa1f`y' = mean(`y') if select==1 & dwomen==1 & dcontinue==1, by(coursefixe)
+gen PSa1f`y' = Pa1f`y'*exp(-_b[select])*_se[select]
+replace Pa1f`y'=Pa1f`y'*(1-exp(-_b[select]))
+egen Pa0f`y' = mean(`y') if select==0 & dwomen==1 & dcontinue==1, by(coursefixe)
+*gen Margaf`y' = Pa1f`y'*(1-Pa0f`y')
+
+clogit `y' select $vvarlb0 if dwomen==0 & dcontinue==1, group(coursefixe)
+egen Pa1m`y' = mean(`y') if select==1 & dwomen==0 & dcontinue==1, by(coursefixe)
+gen PSa1m`y' = Pa1m`y'*exp(-_b[select])*_se[select]
+replace Pa1m`y'=Pa1m`y'*(1-exp(-_b[select]))
+egen Pa0m`y' = mean(`y') if select==0 & dwomen==0 & dcontinue==1, by(coursefixe)
+*
+
+}
+
+collapse P* select, by(coursefixe)
+
+foreach y of global vvarsegp {
+
+gen Margf`y' = P1f`y'*(1-P0f`y')
+gen MSargf`y' = PS1f`y'*(1-P0f`y')
+
+gen Margaf`y' = Pa1f`y'*(1-Pa0f`y')
+gen MSargaf`y' = PSa1f`y'*(1-Pa0f`y')
+
+gen Margm`y' = P1m`y'*(1-P0m`y')
+gen MSargm`y' = PS1m`y'*(1-P0m`y')
+
+gen Margma`y' = Pa1m`y'*(1-Pa0m`y')
+gen MSargma`y' = PSa1m`y'*(1-Pa0m`y')
+
+
+}
+
+sum M*
+
+
+
+*************** Testing for Queue Jumping and Computing Marginal Effects *****************
+
+clear
+
+use AEJApp-20090168_data.dta
+
+summarize p_selecap
+
+gen dpsel_amedian=(p_selecap>0.7386) if p_selecap!=.
+
+gen dsel_psamedian=dselect*dpsel_amedian
+
+save AEJApp-20090168_data.dta, replace
+
+
+foreach y of global vvarsegp {
+clogit `y' select dsel_psamedian $vvarlb0 if dwomen==1 & dcontinue==1, group(coursefixe)
+egen Pa1f`y' = mean(`y') if select==1 & dwomen==1 & dcontinue==1, by(coursefixe)
+gen PSa1f`y' = Pa1f`y'*exp(-_b[select])*_se[select]
+replace Pa1f`y'=Pa1f`y'*(1-exp(-_b[select]))
+gen PSa1fI`y' = Pa1f`y'*exp(-_b[dsel_psamedian])*_se[dsel_psamedian]
+replace Pa1fI`y'=Pa1f`y'*(1-exp(-_b[dsel_psamedian]))
+egen Pa0f`y' = mean(`y') if select==0 & dwomen==1 & dcontinue==1, by(coursefixe)
+*gen Margaf`y' = Pa1f`y'*(1-Pa0f`y')
+
+clogit `y' select dsel_psamedian $vvarlb0 if dwomen==0 & dcontinue==1, group(coursefixe)
+egen Pa1m`y' = mean(`y') if select==1 & dwomen==0 & dcontinue==1, by(coursefixe)
+gen PSa1m`y' = Pa1m`y'*exp(-_b[select])*_se[select]
+replace Pa1m`y'=Pa1m`y'*(1-exp(-_b[select]))
+gen PSa1mI`y' = Pa1m`y'*exp(-_b[dsel_psamedian])*_se[dsel_psamedian]
+replace Pa1mI`y'=Pa1m`y'*(1-exp(-_b[dsel_psamedian]))
+egen Pa0m`y' = mean(`y') if select==0 & dwomen==0 & dcontinue==1, by(coursefixe)
+*
+
+}
+
+collapse P* select, by(coursefixe)
+
+foreach y of global vvarsegp {
+
+gen Margaf`y' = Pa1f`y'*(1-Pa0f`y')
+gen MSargaf`y' = PSa1f`y'*(1-Pa0f`y')
+gen MSargafI`y' = PSa1fI`y'*(1-Pa0f`y')
+
+
+gen Margma`y' = Pa1m`y'*(1-Pa0m`y')
+gen MSargma`y' = PSa1m`y'*(1-Pa0m`y')
+gen MSargmaI`y' = PSa1mI`y'*(1-Pa0m`y')
+
+
+}
+
+sum M*
+
+
+exit
