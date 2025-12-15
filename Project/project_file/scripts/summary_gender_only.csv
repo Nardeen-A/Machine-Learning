@@ -1,0 +1,25 @@
+Variable,Period,Gender,Mean
+employment,Pre,Women,0.464
+employment,Pre,Men,0.581
+employment,Post,Women,0.671
+employment,Post,Men,0.83
+salary,Pre,Women,86.18
+salary,Pre,Men,122.171
+salary,Post,Women,196.3
+salary,Post,Men,285.447
+paid employment,Pre,Women,0.339
+paid employment,Pre,Men,0.4
+paid employment,Post,Women,0.581
+paid employment,Post,Men,0.72
+age,Pre,Women,21.324
+age,Pre,Men,20.957
+age,Post,Women,22.871
+age,Post,Men,22.543
+education,Pre,Women,10.015
+education,Pre,Men,10.168
+education,Post,Women,10.282
+education,Post,Men,10.342
+married,Pre,Women,0.266
+married,Pre,Men,0.109
+married,Post,Women,0.324
+married,Post,Men,0.184

@@ -6,13 +6,14 @@ data = pd.read_stata("E:\\UofT\\03_ML\\Project\\project_file\\data\\AEJApp-20090
 
 # define pre/post variable groups
 var_map = {
+    "employment": ["empl_04", "empl_06"],
+    "salary": ["salary_04", "salary_06"],
+    "paid_empl": ["pempl_04", "pempl_06"],
+    "women": ["d_women", "d_women"],
     "age": ["age_lb", "age_s"],
     "education": ["educ_lb", "educ_s"],
-    "tenure": ["tenure_04", "tenure_06"],
-    "salary": ["salary_04", "salary_06"],
-    "profit": ["profit_04", "profit_06"],
-    "days_worked": ["days_04", "days_06"],
-    "hours_worked": ["hours_04", "hours_06"]
+    "married": ["dmarried_lb", "dmarried_s"]
+    
 }
 
 def make_summary(df):
